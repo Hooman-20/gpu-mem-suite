@@ -1,0 +1,8 @@
+build/
+bin/
+.venv/
+__pycache__/
+
+# Raw run output. Copy curated CSVs/plots into docs/results/ to publish them.
+results/*
+!results/.gitkeep

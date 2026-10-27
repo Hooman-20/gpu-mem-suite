@@ -1,0 +1,20 @@
+name: ci
+
+# CPU-only: host-side unit tests (no CUDA toolkit, no GPU). GPU runs happen locally via `make smoke`.
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-latest]  # macOS keeps the shared code clang/libc++-clean for the Metal port
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and run unit tests
+        run: make -j4 test
+      - name: Check plot script syntax
+        run: python3 -m py_compile scripts/plot_results.py
