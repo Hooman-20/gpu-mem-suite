@@ -17,10 +17,16 @@ int attribute(cudaDeviceAttr attr, int device) {
   return value;
 }
 
+bool same_launch(const KernelArgs& a, const KernelArgs& b) {
+  return a.test == b.test && a.src.ptr == b.src.ptr && a.dst.ptr == b.dst.ptr && a.partials.ptr == b.partials.ptr &&
+         a.chase_out.ptr == b.chase_out.ptr && a.n_words == b.n_words && a.seed == b.seed && a.start == b.start &&
+         a.steps == b.steps;
+}
+
 }  // namespace
 
-CudaBackend::CudaBackend(int device, int block_size, int blocks_per_sm)
-    : device_(device), block_size_(block_size), blocks_per_sm_(blocks_per_sm) {
+CudaBackend::CudaBackend(int device, int block_size, int blocks_per_sm, TimingMode timing)
+    : device_(device), block_size_(block_size), blocks_per_sm_(blocks_per_sm), timing_(timing) {
   int count = 0;
   check(cudaGetDeviceCount(&count), "cudaGetDeviceCount");
   if (device < 0 || device >= count) {
@@ -35,6 +41,7 @@ CudaBackend::CudaBackend(int device, int block_size, int blocks_per_sm)
 }
 
 CudaBackend::~CudaBackend() {
+  destroy_graph();
   if (start_) cudaEventDestroy(start_);
   if (stop_) cudaEventDestroy(stop_);
   if (stream_) cudaStreamDestroy(stream_);
@@ -68,6 +75,7 @@ DeviceInfo CudaBackend::device_info() const {
       {"cuda_driver_version", std::to_string(driver)},
       {"launch_block_size", std::to_string(block_size_)},
       {"launch_blocks_per_sm", std::to_string(blocks_per_sm_)},
+      {"launch_api", timing_ == TimingMode::Graph ? "cudaGraphLaunch" : "kernel<<<>>>"},
   };
   return info;
 }
@@ -132,9 +140,44 @@ void CudaBackend::launch(const KernelArgs& a) {
   }
 }
 
-double CudaBackend::time_launches(const KernelArgs& args, int k) {
-  check(cudaEventRecord(start_, stream_), "cudaEventRecord");
+void CudaBackend::destroy_graph() {
+  if (graph_exec_) cudaGraphExecDestroy(graph_exec_);
+  graph_exec_ = nullptr;
+  graph_k_ = 0;
+}
+
+void CudaBackend::prepare_graph(const KernelArgs& args, int k) {
+  if (graph_exec_ && graph_k_ == k && same_launch(args, graph_args_)) return;
+  destroy_graph();
+
+  check(cudaStreamBeginCapture(stream_, cudaStreamCaptureModeThreadLocal), "cudaStreamBeginCapture");
   for (int i = 0; i < k; ++i) launch(args);
+  const cudaError_t launch_err = cudaGetLastError();
+  cudaGraph_t graph = nullptr;
+  const cudaError_t end_err = cudaStreamEndCapture(stream_, &graph);
+  if (launch_err != cudaSuccess || end_err != cudaSuccess) {
+    if (graph) cudaGraphDestroy(graph);
+    check(launch_err, "kernel launch during graph capture");
+    check(end_err, "cudaStreamEndCapture");
+  }
+  const cudaError_t inst_err = cudaGraphInstantiate(&graph_exec_, graph, 0);
+  cudaGraphDestroy(graph);
+  check(inst_err, "cudaGraphInstantiate");
+  // Upload now so the first timed cudaGraphLaunch doesn't pay for it.
+  check(cudaGraphUpload(graph_exec_, stream_), "cudaGraphUpload");
+  check(cudaStreamSynchronize(stream_), "cudaStreamSynchronize");
+  graph_args_ = args;
+  graph_k_ = k;
+}
+
+double CudaBackend::time_launches(const KernelArgs& args, int k) {
+  if (timing_ == TimingMode::Graph) prepare_graph(args, k);  // untimed
+  check(cudaEventRecord(start_, stream_), "cudaEventRecord");
+  if (timing_ == TimingMode::Graph) {
+    check(cudaGraphLaunch(graph_exec_, stream_), "cudaGraphLaunch");
+  } else {
+    for (int i = 0; i < k; ++i) launch(args);
+  }
   check(cudaGetLastError(), "kernel launch");
   check(cudaEventRecord(stop_, stream_), "cudaEventRecord");
   check(cudaEventSynchronize(stop_), "kernel execution");

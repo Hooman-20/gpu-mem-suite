@@ -92,6 +92,7 @@ TEST_CASE("runner writes one passing CSV per test with device metadata") {
     CHECK(csv.meta.at("compute_units") == "2");
     CHECK(csv.meta.at("clock_khz") == "1000000");
     CHECK(csv.meta.at("peak_dram_gbs") == "123.4");
+    CHECK(csv.meta.at("timing_mode") == "launch");
     CHECK(csv.meta.at("fake_extra") == "yes");
     CHECK(csv.meta.at("test") == names[t]);
     REQUIRE(csv.rows.size() == 5);  // 4K, 8K, 16K, 32K, 64K
@@ -193,6 +194,17 @@ TEST_CASE("--check-every-rep verifies after each timed repetition") {
   const auto rows = read_csv(run_suite(backend, o, log).csv_paths.at(0)).rows;
   CHECK(rows.at(0).at("check") == "FAIL");
   CHECK(rows.at(0).at("mismatches") == "3");  // one bad word in each of 3 reps
+}
+
+TEST_CASE("timing mode is recorded in the CSV header") {
+  TempDir dir("gpumem_runner_timing");
+  FakeBackend backend;
+  Options o = small_options(dir.path.string());
+  o.tests = {Test::Copy};
+  o.max_bytes = 4 * KiB;
+  o.timing = TimingMode::Graph;
+  std::ostringstream log;
+  CHECK(read_csv(run_suite(backend, o, log).csv_paths.at(0)).meta.at("timing_mode") == "graph");
 }
 
 TEST_CASE("K respects max_k and the per-launch time is reported") {

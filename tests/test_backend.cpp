@@ -14,6 +14,12 @@ TEST_CASE("nominal DRAM bandwidth from memory clock and bus width") {
   CHECK(nominal_dram_gbs(14001000, 0) == 0.0);
 }
 
+TEST_CASE("timing modes round-trip through the parser") {
+  for (TimingMode m : {TimingMode::Launch, TimingMode::Graph}) CHECK(parse_timing_mode(timing_mode_name(m)) == m);
+  CHECK_THROWS_AS(parse_timing_mode("graphs"), std::invalid_argument);
+  CHECK_THROWS_AS(parse_timing_mode(""), std::invalid_argument);
+}
+
 TEST_CASE("test names round-trip through the parser") {
   for (Test t : {Test::Read, Test::Write, Test::Copy, Test::Chase}) {
     CHECK(parse_test_list(test_name(t)) == std::vector<Test>{t});

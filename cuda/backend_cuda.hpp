@@ -9,7 +9,7 @@ namespace gpumem {
 
 class CudaBackend final : public Backend {
  public:
-  CudaBackend(int device, int block_size, int blocks_per_sm);
+  CudaBackend(int device, int block_size, int blocks_per_sm, TimingMode timing = TimingMode::Launch);
   ~CudaBackend() override;
   CudaBackend(const CudaBackend&) = delete;
   CudaBackend& operator=(const CudaBackend&) = delete;
@@ -26,14 +26,21 @@ class CudaBackend final : public Backend {
  private:
   LaunchConfig stream_config(uint64_t n_words) const;
   void launch(const KernelArgs& args);
+  // Graph mode: (re)captures K launches of `args` into graph_exec_ unless the cached graph matches.
+  void prepare_graph(const KernelArgs& args, int k);
+  void destroy_graph();
 
   int device_;
   int block_size_;
   int blocks_per_sm_;
+  TimingMode timing_;
   int sm_count_ = 0;
   cudaStream_t stream_ = nullptr;
   cudaEvent_t start_ = nullptr;
   cudaEvent_t stop_ = nullptr;
+  cudaGraphExec_t graph_exec_ = nullptr;
+  KernelArgs graph_args_;
+  int graph_k_ = 0;
 };
 
 }  // namespace gpumem

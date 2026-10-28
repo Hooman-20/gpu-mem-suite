@@ -50,13 +50,22 @@ per-pin data rate, so the factor of 2 gives the data rate. On the RTX 5090: 2 ×
 = 1792 GB/s (28 Gbps GDDR7). This is a datasheet ceiling; well-written streaming kernels
 typically reach about 85–92% of it.
 
-### Known limitation: launch-bound small sizes
+### Launch overhead and `--timing`
 
-Back-to-back launches measure *throughput including per-launch overhead*. On this machine
-(WSL2/WDDM) an empty kernel costs about 6–7 µs per launch, so sizes below a few MiB are
-launch-bound rather than memory-bound, and the "bandwidth" there mostly reflects that overhead.
-Ways to remove it, all candidates for future work: CUDA Graphs, doing the K repetitions
-inside one launch, or using a persistent kernel.
+Back-to-back launches measure *throughput including per-launch overhead*. How much overhead
+depends on the timing mode:
+
+| `--timing`         | How K launches are issued                                       | Empty-kernel cost per launch (RTX 5090, WSL2) |
+|--------------------|------------------------------------------------------------------|-----------------------------------------------|
+| `launch` (default) | K individual `kernel<<<>>>` calls                               | about 6–13 µs                                 |
+| `graph`            | K launches captured once into a CUDA Graph, one `cudaGraphLaunch` | about 0.8 µs                                  |
+
+Graph capture, instantiation and upload happen outside the timed region and are cached per
+(size, K). In `launch` mode, sizes below a few MiB are launch-bound rather than memory-bound.
+`graph` mode lowers that floor about 10×, but it doesn't remove it: each graph node still has a
+dispatch cost. For the smallest sizes the remaining options are doing the K repetitions
+inside one launch, or a persistent kernel. The mode is recorded in the CSV header
+(`timing_mode`), so runs made in different modes are never mixed up.
 
 ## Correctness checks
 

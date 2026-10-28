@@ -80,6 +80,7 @@ ParseResult parse_args(const std::vector<std::string>& args) {
     else if (flag == "--reps") o.reps = parse_int(flag, value());
     else if (flag == "--target-ms") o.target_ms = parse_double(flag, value());
     else if (flag == "--max-k") o.max_k = parse_int(flag, value());
+    else if (flag == "--timing") o.timing = parse_timing_mode(value());
     else if (flag == "--check-every-rep") {
       if (has_inline) throw std::invalid_argument("--check-every-rep takes no value");
       o.check_every_rep = true;
@@ -154,6 +155,8 @@ Timing
   --reps N               timed repetitions per size; median is reported (default 20)
   --target-ms MS         launches per rep (K) are chosen so a rep lasts >= MS (default 1.0)
   --max-k N              upper bound on K (default 10000)
+  --timing MODE          launch: K individual launches per rep (default)
+                         graph:  K launches submitted as one CUDA Graph (less launch overhead)
 
 Correctness
   --check-every-rep      verify output after every timed rep, not just once per size

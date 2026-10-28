@@ -16,7 +16,14 @@ TEST_CASE("defaults match the documented sweep and timing") {
   CHECK(o.reps == 20);
   CHECK(o.target_ms == 1.0);
   CHECK_FALSE(o.check_every_rep);
+  CHECK(o.timing == TimingMode::Launch);
   CHECK(o.out_dir == "results");
+}
+
+TEST_CASE("--timing selects the launch mode") {
+  CHECK(parse_args({"--timing", "graph"}).options.timing == TimingMode::Graph);
+  CHECK(parse_args({"--timing=launch"}).options.timing == TimingMode::Launch);
+  CHECK_THROWS_AS(parse_args({"--timing", "fast"}), std::invalid_argument);
 }
 
 TEST_CASE("--test selects tests") {

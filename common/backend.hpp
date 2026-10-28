@@ -14,7 +14,16 @@ namespace gpumem {
 
 enum class Test { Read, Write, Copy, Chase };
 
+// How a backend issues the K launches of one timed repetition.
+//   Launch: K individual launches, back to back (includes per-launch submission overhead).
+//   Graph:  K launches pre-recorded and submitted as one unit (CUDA Graphs; for Metal, one
+//           command buffer). Backends that cannot do this reject it at construction.
+enum class TimingMode { Launch, Graph };
+
 const char* test_name(Test test);
+
+const char* timing_mode_name(TimingMode mode);
+TimingMode parse_timing_mode(const std::string& text);  // "launch" | "graph"; throws std::invalid_argument
 
 // "read", "write", "copy", "chase", "all", or a comma-separated list. Throws std::invalid_argument.
 std::vector<Test> parse_test_list(const std::string& text);

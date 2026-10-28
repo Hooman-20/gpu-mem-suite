@@ -22,6 +22,7 @@ struct Options {
   int reps = 20;
   double target_ms = 1.0;  // minimum duration of one timed repetition (K launches)
   int max_k = 10000;
+  TimingMode timing = TimingMode::Launch;
 
   // Correctness
   bool check_every_rep = false;

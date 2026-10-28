@@ -42,12 +42,16 @@ Use `ARCH=sm_90 make` (for example) to target a different GPU.
 
 ```text
 bin/gpumem --test read|write|copy|chase|all [--min-size 4K] [--max-size 1G]
-           [--points-per-octave 2] [--warmup 3] [--reps 20] [--target-ms 1.0]
+           [--points-per-octave 2] [--warmup 3] [--reps 20] [--target-ms 1.0] [--timing launch|graph]
            [--check-every-rep] [--seed N] [--chase-stride 128] [--block 256] ...
 bin/gpumem --help         # full option list
 ```
 
 Exit status: 0 if all checks passed, 2 if any size failed its correctness check, 1 on error.
+
+`--timing graph` submits each repetition's K launches as one CUDA Graph. Under WSL2 this cuts
+per-launch overhead from about 6–13 µs to about 0.8 µs, which matters for small buffers (see
+[methodology](docs/methodology.md#launch-overhead-and---timing)).
 
 ## Output
 

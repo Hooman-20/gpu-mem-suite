@@ -16,6 +16,16 @@ const char* test_name(Test test) {
   return "unknown";
 }
 
+const char* timing_mode_name(TimingMode mode) {
+  return mode == TimingMode::Graph ? "graph" : "launch";
+}
+
+TimingMode parse_timing_mode(const std::string& text) {
+  if (text == "launch") return TimingMode::Launch;
+  if (text == "graph") return TimingMode::Graph;
+  throw std::invalid_argument("unknown timing mode '" + text + "' (launch|graph)");
+}
+
 std::vector<Test> parse_test_list(const std::string& text) {
   static const Test kAll[] = {Test::Read, Test::Write, Test::Copy, Test::Chase};
   std::vector<Test> tests;

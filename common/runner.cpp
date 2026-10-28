@@ -261,6 +261,7 @@ void write_preamble(CsvWriter& csv, const DeviceInfo& info, const Options& o, Te
   csv.comment("reps", std::to_string(o.reps));
   csv.comment("target_ms", format_fixed(o.target_ms, 3));
   csv.comment("max_k", std::to_string(o.max_k));
+  csv.comment("timing_mode", timing_mode_name(o.timing));
   csv.comment("seed", seed);
   csv.comment("check_every_rep", o.check_every_rep ? "1" : "0");
   csv.comment("points_per_octave", std::to_string(o.points_per_octave));
