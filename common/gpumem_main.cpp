@@ -21,7 +21,8 @@ int gpumem_main(int argc, char** argv, const BackendFactory& make_backend) {
     const std::unique_ptr<Backend> backend = make_backend(opts);
     const DeviceInfo info = backend->device_info();
     std::cout << "Device: " << info.name << " [" << info.backend << "]  units=" << info.compute_units
-              << "  L2=" << format_size(info.l2_bytes) << "  clock=" << info.clock_khz / 1000 << " MHz\n";
+              << "  L2=" << format_size(info.l2_bytes) << "  clock=" << info.clock_khz / 1000 << " MHz"
+              << "  DRAM peak=" << static_cast<int>(info.peak_dram_gbs) << " GB/s\n";
 
     const SuiteResult result = run_suite(*backend, opts, std::cout);
     if (result.failed_sizes > 0) {

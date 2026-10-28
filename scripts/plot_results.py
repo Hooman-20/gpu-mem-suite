@@ -155,6 +155,15 @@ def draw_refs(ax, refs, label=True):
                         annotation_clip=False)
 
 
+def draw_peaks(ax, peaks):
+    """Horizontal dashed ceilings (nominal DRAM bandwidth), labelled just above the line at the left."""
+    for gbs, text in peaks:
+        ax.axhline(gbs, color=MUTED, linewidth=1, linestyle=(0, (4, 3)), zorder=1)
+        ax.annotate(text, (0.01, gbs), xycoords=ax.get_yaxis_transform(), xytext=(0, 3),
+                    textcoords="offset points", ha="left", va="bottom", fontsize=8, color=MUTED, zorder=5,
+                    bbox=dict(facecolor=SURFACE, edgecolor="none", pad=1, alpha=0.85))
+
+
 def draw_series(ax, series):
     """series: list of (name, points, slot). Returns (any_failed, line ends, max y)."""
     failed_any = False
@@ -242,7 +251,21 @@ def ref_lines(runs, extra_refs, include_l2):
     return refs
 
 
-def plot_bandwidth(runs, refs, out_path, title):
+def peak_lines(runs, override_gbs):
+    """(GB/s, label) per distinct nominal DRAM peak; --peak-gbs fills in runs whose CSV has none."""
+    peaks = OrderedDict()
+    for run in runs:
+        gbs = float(run["meta"].get("peak_dram_gbs", "0") or 0) or (override_gbs or 0)
+        if gbs:
+            peaks.setdefault(round(gbs, 1), []).append(run["label"])
+    out = []
+    for gbs, owners in peaks.items():
+        who = "" if len(peaks) == 1 else f" ({', '.join(owners)})"
+        out.append((gbs, f"DRAM peak {gbs:g} GB/s{who}"))
+    return out
+
+
+def plot_bandwidth(runs, refs, peaks, out_path, title):
     present = [t for t in STREAM_TESTS if any(t in r["tests"] for r in runs)]
     if not present:
         print("no read/write/copy results; skipping bandwidth plot")
@@ -270,10 +293,11 @@ def plot_bandwidth(runs, refs, out_path, title):
         style_axes(ax, "Bandwidth (GB/s)" if ax is panels[0][0] else "")
         set_size_ticks(ax, sizes)
         draw_refs(ax, refs)
+        draw_peaks(ax, peaks)
         bad, ends, ymax = draw_series(ax, series)
         failed |= bad
         all_ends.append(ends)
-        ymaxes.append(ymax)
+        ymaxes.append(max([ymax] + [gbs for gbs, _ in peaks]))
         if test:
             ax.set_title(test, color=TEXT, fontsize=10, loc="left", pad=34 if refs else 6)
         ax.set_xlabel("Buffer size", color=TEXT_2)
@@ -332,6 +356,9 @@ def main(argv=None):
     p.add_argument("--ref", action="append", type=parse_ref, default=[], metavar="NAME=SIZE",
                    help="extra reference line, e.g. L1=128K (repeatable)")
     p.add_argument("--no-l2", action="store_true", help="omit the L2 reference line from the CSV header")
+    p.add_argument("--peak-gbs", type=float, metavar="GBS",
+                   help="nominal DRAM bandwidth line for runs whose CSV has no peak_dram_gbs (e.g. Metal)")
+    p.add_argument("--no-peak", action="store_true", help="omit the DRAM peak line")
     p.add_argument("--title", help="override the figure titles' prefix")
     args = p.parse_args(argv)
 
@@ -340,10 +367,11 @@ def main(argv=None):
         sys.exit("no CSVs given and none found in results/")
     runs = load_runs(paths, args.label)
     refs = ref_lines(runs, args.ref, not args.no_l2)
+    peaks = [] if args.no_peak else peak_lines(runs, args.peak_gbs)
 
     os.makedirs(args.out_dir, exist_ok=True)
     prefix = f"{args.title}: " if args.title else ""
-    plot_bandwidth(runs, refs, os.path.join(args.out_dir, "bandwidth_vs_size.png"),
+    plot_bandwidth(runs, refs, peaks, os.path.join(args.out_dir, "bandwidth_vs_size.png"),
                    prefix + "Memory bandwidth vs buffer size" if prefix else None)
     plot_latency(runs, refs, os.path.join(args.out_dir, "latency_vs_size.png"),
                  prefix + "Load-to-use latency vs working-set size" if prefix else None)

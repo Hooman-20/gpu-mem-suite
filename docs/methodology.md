@@ -44,6 +44,12 @@ For each size:
 Bandwidth is `bytes_per_launch / median_time`, in GB/s (10^9 bytes/s). Read and write count
 `size` bytes; copy counts `2 × size` (every byte is read once and written once).
 
+The nominal DRAM peak in the CSV header is `2 × mem_clock × bus_width / 8`, computed from the
+memory clock and bus width the CUDA API reports. CUDA reports GDDR's effective clock at half the
+per-pin data rate, so the factor of 2 gives the data rate. On the RTX 5090: 2 × 14.001 GHz × 512 bit / 8
+= 1792 GB/s (28 Gbps GDDR7). This is a datasheet ceiling; well-written streaming kernels
+typically reach about 85–92% of it.
+
 ### Known limitation: launch-bound small sizes
 
 Back-to-back launches measure *throughput including per-launch overhead*. On this machine

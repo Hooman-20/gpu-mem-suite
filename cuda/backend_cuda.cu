@@ -54,11 +54,14 @@ DeviceInfo CudaBackend::device_info() const {
   info.l2_bytes = static_cast<uint64_t>(attribute(cudaDevAttrL2CacheSize, device_));
   info.global_mem_bytes = prop.totalGlobalMem;
   info.clock_khz = attribute(cudaDevAttrClockRate, device_);
+  const int mem_clock_khz = attribute(cudaDevAttrMemoryClockRate, device_);
+  const int bus_width_bits = attribute(cudaDevAttrGlobalMemoryBusWidth, device_);
+  info.peak_dram_gbs = nominal_dram_gbs(static_cast<uint64_t>(mem_clock_khz), bus_width_bits);
   info.has_cycle_counter = true;
   info.extra = {
       {"compute_capability", std::to_string(prop.major) + "." + std::to_string(prop.minor)},
-      {"mem_clock_khz", std::to_string(attribute(cudaDevAttrMemoryClockRate, device_))},
-      {"mem_bus_width_bits", std::to_string(attribute(cudaDevAttrGlobalMemoryBusWidth, device_))},
+      {"mem_clock_khz", std::to_string(mem_clock_khz)},
+      {"mem_bus_width_bits", std::to_string(bus_width_bits)},
       {"shared_mem_per_sm_bytes", std::to_string(attribute(cudaDevAttrMaxSharedMemoryPerMultiprocessor, device_))},
       {"max_persisting_l2_bytes", std::to_string(attribute(cudaDevAttrMaxPersistingL2CacheSize, device_))},
       {"cuda_runtime_version", std::to_string(runtime)},

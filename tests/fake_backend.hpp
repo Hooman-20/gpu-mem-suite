@@ -28,6 +28,7 @@ class FakeBackend final : public Backend {
     d.l2_bytes = 32 * 1024;
     d.global_mem_bytes = 1ULL << 30;
     d.clock_khz = 1000000;
+    d.peak_dram_gbs = 123.4;
     d.has_cycle_counter = true;
     d.extra = {{"fake_extra", "yes"}};
     return d;

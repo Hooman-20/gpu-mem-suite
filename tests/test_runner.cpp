@@ -91,6 +91,7 @@ TEST_CASE("runner writes one passing CSV per test with device metadata") {
     CHECK(csv.meta.at("l2_bytes") == "32768");
     CHECK(csv.meta.at("compute_units") == "2");
     CHECK(csv.meta.at("clock_khz") == "1000000");
+    CHECK(csv.meta.at("peak_dram_gbs") == "123.4");
     CHECK(csv.meta.at("fake_extra") == "yes");
     CHECK(csv.meta.at("test") == names[t]);
     REQUIRE(csv.rows.size() == 5);  // 4K, 8K, 16K, 32K, 64K

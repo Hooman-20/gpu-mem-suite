@@ -65,8 +65,9 @@ python3 -m venv .venv && .venv/bin/pip install -r scripts/requirements.txt
 ```
 
 This produces `bandwidth_vs_size.png` and `latency_vs_size.png`. The x-axis is log2 size, with
-reference lines at the L2 size read from each CSV. Rows that failed their correctness check are
-marked with a red ✕.
+reference lines at the L2 size read from each CSV. The bandwidth plot also has a horizontal line
+at the nominal DRAM peak (`peak_dram_gbs` in the CSV header; pass `--peak-gbs N` for backends that
+can't report it). Rows that failed their correctness check are marked with a red ✕.
 
 ## Results
 

@@ -36,4 +36,10 @@ std::vector<Test> parse_test_list(const std::string& text) {
   return tests;
 }
 
+double nominal_dram_gbs(uint64_t mem_clock_khz, int bus_width_bits) {
+  if (mem_clock_khz == 0 || bus_width_bits <= 0) return 0.0;
+  const double transfers_per_s = 2.0 * static_cast<double>(mem_clock_khz) * 1e3;
+  return transfers_per_s * (bus_width_bits / 8.0) / 1e9;
+}
+
 }  // namespace gpumem

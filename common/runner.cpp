@@ -252,6 +252,7 @@ void write_preamble(CsvWriter& csv, const DeviceInfo& info, const Options& o, Te
   csv.comment("l2_bytes", std::to_string(info.l2_bytes));
   csv.comment("clock_khz", std::to_string(info.clock_khz));
   csv.comment("global_mem_bytes", std::to_string(info.global_mem_bytes));
+  csv.comment("peak_dram_gbs", format_fixed(info.peak_dram_gbs, 1));
   csv.comment("has_cycle_counter", info.has_cycle_counter ? "1" : "0");
   for (const auto& [key, value] : info.extra) csv.comment(key, value);
   csv.comment("test", test_name(test));

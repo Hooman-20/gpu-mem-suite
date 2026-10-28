@@ -19,6 +19,10 @@ const char* test_name(Test test);
 // "read", "write", "copy", "chase", "all", or a comma-separated list. Throws std::invalid_argument.
 std::vector<Test> parse_test_list(const std::string& text);
 
+// Nominal DRAM bandwidth in GB/s: 2 transfers per reported memory clock across the bus
+// (the convention CUDA's memoryClockRate follows, GDDR7 included). 0 if either input is unknown.
+double nominal_dram_gbs(uint64_t mem_clock_khz, int bus_width_bits);
+
 // What a backend knows about its device. Anything the API cannot report stays 0.
 struct DeviceInfo {
   std::string backend;             // "cuda", "metal", ...
@@ -27,6 +31,7 @@ struct DeviceInfo {
   uint64_t l2_bytes = 0;           // last-level on-chip cache size reported by the API
   uint64_t global_mem_bytes = 0;
   int clock_khz = 0;               // max shader clock reported by the API
+  double peak_dram_gbs = 0.0;      // nominal DRAM bandwidth derived from the API (0 = unknown)
   bool has_cycle_counter = false;  // kernels can read a cycle counter (clock64() on CUDA)
   std::vector<std::pair<std::string, std::string>> extra;  // backend-specific CSV header fields
 };
